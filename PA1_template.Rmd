@@ -1,25 +1,72 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Peer-Graded Assignment: Coursera Project 1
+echo = TRUE
 
+### Part 1 -- Loading & Processing Data
 
-## Loading and preprocessing the data
+FYI -- Assuming working directory is set and data unzipped.
+```{r}
+Activity <- read.csv("~/datasciencecoursera/Reproducible Research/activity.csv")
+Activity$date <- as.Date(Activity$date)
+NAfree <- na.omit(Activity)
+```
+### PART 2 -- Total Number of Steps Per Day
 
+```{r}
+Total.Steps <- aggregate(steps ~ date, data = NAfree, FUN = sum)
 
+library(ggplot2)
 
-## What is mean total number of steps taken per day?
+ggplot(data = Total.Steps, aes(x = date, y = steps)) + 
+geom_bar(stat = "identity", color = "black", fill = "orange", width = 1) + xlab("Date") +
+ylab("Step Count") + ggtitle("Total Number of Steps Per Day")
 
+mean(Total.Steps$steps)
+median(Total.Steps$steps)
+summary(Total.Steps)
+```
+Mean = 10766.19  
+Median = 10765  
+Summary: Mean = 10766 (rounded to whole number); Median = 10765  
 
+### PART 3 -- Average Daily Activity Pattern 
 
-## What is the average daily activity pattern?
+```{r}
+Mean.Steps <- aggregate(steps ~ interval, data = NAfree, FUN = mean)
 
+ggplot(data = Mean.Steps, aes(x = interval, y = steps)) + geom_line(color = "red") + xlab("5 Minute Intervals") + ylab("Step Count") + 
+ggtitle("Average Number of Steps Per Interval in One Day")
 
+Mean.Steps[Mean.Steps$steps == max(Mean.Steps$steps), ]
+```
+### PART 4 -- Inputting Missing Values
 
-## Imputing missing values
+Replace NA values in the Activity dataframe with the mean-step values per interval from the Mean.Steps dataframe.
 
+```{r}
+nrow(Activity[Activity$steps == "NA", ])
+Activity$steps <- ifelse(is.na(Activity$steps) == TRUE, 
+Mean.Steps$steps[Mean.Steps$interval %in% Activity$interval], Activity$steps)
 
+Total.Steps2 <- aggregate(steps ~ date, data = Activity, FUN = sum)
 
-## Are there differences in activity patterns between weekdays and weekends?
+ggplot(data = Total.Steps2, aes(x = date, y = steps)) + 
+geom_bar(stat = "identity", color = "black", fill = "orange", width = 1) + xlab("Date") + ylab("Step Count") + ggtitle("Total Number of Steps Per Day without NA values")
+
+mean(Total.Steps2$steps)
+median(Total.Steps2$steps)
+summary(Total.Steps2)
+```
+Mean & Median = 10766.19 now.    
+Summary function: both Mean & Median = 10766  
+
+### PART 5 -- Any Difference in Activity Patterns Between Weekends & Weekdays
+
+```{r}
+Activity$wDay <- factor(weekdays(Activity$date))
+levels(Activity$wDay) <- list(weekend = c("Saturday", "Sunday"), weekday = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"))
+
+Mean.Steps2 <- aggregate(steps ~ interval + wDay, data = Activity, FUN = mean)
+
+ggplot(data = Mean.Steps2, aes(x = interval, y = steps)) + geom_line(color = "red") + facet_wrap(~ wDay, ncol = 1)
+```
+ 
